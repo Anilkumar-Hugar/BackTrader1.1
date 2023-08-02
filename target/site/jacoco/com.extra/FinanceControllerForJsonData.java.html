@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FinanceControllerForJsonData.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">backtrader1.0</a> &gt; <a href="index.source.html" class="el_package">com.extra</a> &gt; <span class="el_source">FinanceControllerForJsonData.java</span></div><h1>FinanceControllerForJsonData.java</h1><pre class="source lang-java linenums">package com.extra;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.backtrader.jwtconfiguration.JwtToken;
+import com.backtrader.scheduler.SchedulerForFinanceData;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
+@RestController
+@SecurityRequirement(name = &quot;Authorization&quot;)
+@CrossOrigin
+<span class="nc" id="L25">public class FinanceControllerForJsonData {</span>
+	@Autowired
+	private FinanceServiceForJsonData financeServiceForJsonData;
+	@Autowired
+	private SchedulerForFinanceData financeData;
+	@Autowired
+	private JwtToken jwtToken;
+
+	@GetMapping(&quot;/buystock&quot;)
+	@PreAuthorize(&quot;hasAnyAuthority('USER')&quot;)
+	public ResponseEntity&lt;?&gt; storeData(Authentication authentication, @RequestParam String symbol,
+			@RequestParam String function) throws IOException, InterruptedException {
+<span class="nc" id="L37">		return financeServiceForJsonData.getStockAsJson(authentication, symbol, function);</span>
+	}
+
+	@GetMapping(&quot;/findAll&quot;)
+	@PreAuthorize(&quot;hasAnyAuthority('ADMIN')&quot;)
+	public ResponseEntity&lt;List&lt;com.backtrader.userentity.StockDataWithSymbol&gt;&gt; findAllStockData() {
+		//return ResponseEntity.status(HttpStatus.OK).body(financeData.findAll());
+<span class="nc" id="L44">		return ResponseEntity.ok(financeData.findAll());</span>
+	}
+
+	@GetMapping(&quot;/getStockData&quot;)
+	@PreAuthorize(&quot;hasAnyAuthority('USER')&quot;)
+	public ResponseEntity&lt;?&gt; findStockForUser(Authentication auth, @RequestParam String symbol, @RequestHeader String authorization) {
+<span class="nc" id="L50">		String token = authorization.substring(7, authorization.length());</span>
+<span class="nc" id="L51">		String useremail = jwtToken.getUserNameFromToken(token);</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">		if (useremail.equals(auth.getName())) {</span>
+<span class="nc" id="L53">			return ResponseEntity.status(HttpStatus.FOUND).body(financeData.findStock(auth,symbol));</span>
+		} else {
+<span class="nc" id="L55">			return ResponseEntity.status(HttpStatus.FORBIDDEN).body(&quot;Access denied&quot;);</span>
+		}
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

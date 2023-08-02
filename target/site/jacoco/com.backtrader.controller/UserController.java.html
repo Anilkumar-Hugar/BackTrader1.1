@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">backtrader1.0</a> &gt; <a href="index.source.html" class="el_package">com.backtrader.controller</a> &gt; <span class="el_source">UserController.java</span></div><h1>UserController.java</h1><pre class="source lang-java linenums">package com.backtrader.controller;
+
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.backtrader.exception.NoValuePresentException;
+import com.backtrader.jwtconfiguration.JwtToken;
+import com.backtrader.model.UserModel;
+import com.backtrader.requestresponse.AuthRequest;
+import com.backtrader.requestresponse.AuthResponse;
+import com.backtrader.requestresponse.ForgotPassword;
+import com.backtrader.requestresponse.ResetPassword;
+import com.backtrader.service.UserService;
+
+import jakarta.mail.MessagingException;
+import jakarta.validation.Valid;
+import lombok.Setter;
+
+@RestController
+<span class="nc" id="L36">@Setter</span>
+<span class="fc" id="L37">public class UserController {</span>
+<span class="fc" id="L38">	Logger logger=org.slf4j.LoggerFactory.getLogger(UserController.class);</span>
+	@Autowired
+	private UserService userService;
+	@Autowired
+	private AuthenticationManager authenticationManager;
+	@Autowired
+	private JwtToken jwtToken;
+
+	@PostMapping(value = &quot;/login&quot;, consumes = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity&lt;AuthResponse&gt; login(@Valid @RequestBody AuthRequest authRequest) {
+<span class="nc" id="L48">		AuthResponse response = null;</span>
+<span class="nc" id="L49">		Authentication authentication = authenticationManager.authenticate(</span>
+<span class="nc" id="L50">				new UsernamePasswordAuthenticationToken(authRequest.getEmail(), authRequest.getPassword()));</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">		if (authentication != null) {</span>
+<span class="nc" id="L52">			SecurityContextHolder.getContext().setAuthentication(authentication);</span>
+<span class="nc" id="L53">			UserDetails userDetails = (UserDetails) authentication.getPrincipal();</span>
+<span class="nc" id="L54">			String token = jwtToken.generateJwtToken(userDetails.getUsername());</span>
+<span class="nc" id="L55">			List&lt;String&gt; roles = userDetails.getAuthorities().stream().map(list -&gt; list.getAuthority()).toList();</span>
+<span class="nc" id="L56">			response = new AuthResponse(jwtToken.getUserNameFromToken(token), roles, token);</span>
+<span class="nc" id="L57">			logger.info(&quot;User has been logged in with the user email {}&quot;,userDetails.getUsername());</span>
+<span class="nc" id="L58">			return ResponseEntity.status(HttpStatus.OK).body(response);</span>
+		} else {
+<span class="nc" id="L60">			return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);</span>
+		}
+	}
+
+	@PostMapping(value = &quot;/signup&quot;, consumes = { MediaType.APPLICATION_JSON_VALUE,
+			MediaType.APPLICATION_FORM_URLENCODED_VALUE })
+	public ResponseEntity&lt;String&gt; createUser(@RequestBody @Valid UserModel user) {
+<span class="nc" id="L67">		return userService.createUser(user);</span>
+
+	}
+
+	@PostMapping(value = &quot;/adminsignup&quot;, consumes = { MediaType.APPLICATION_JSON_VALUE })
+	@PreAuthorize(&quot;hasAuthority('ADMIN')&quot;)
+	public ResponseEntity&lt;String&gt; createAdmin(@RequestBody @Valid UserModel userModel,
+			@RequestHeader(name = &quot;Authorization&quot;) String token) {
+<span class="nc" id="L75">		return userService.createAdmin(userModel, token);</span>
+	}
+
+	@PostMapping(value = &quot;/forgot-passsword&quot;)
+	public ResponseEntity&lt;String&gt; forgotPassword(@RequestBody ForgotPassword forgotPassword) throws MessagingException {
+
+<span class="nc" id="L81">		return userService.forgotPassword(forgotPassword);</span>
+	}
+
+	@PostMapping(&quot;/reset-password&quot;)
+	public ResponseEntity&lt;String&gt; resetPassword(@RequestParam String token, @RequestBody ResetPassword resetPassword) {
+<span class="nc" id="L86">		return userService.resetPassword(token, resetPassword);</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

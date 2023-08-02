@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StockDataService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">backtrader1.0</a> &gt; <a href="index.source.html" class="el_package">com.backtrader.finance.service</a> &gt; <span class="el_source">StockDataService.java</span></div><h1>StockDataService.java</h1><pre class="source lang-java linenums">package com.backtrader.finance.service;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+
+import com.backtrader.finance.configuration.FinanceConfiguration;
+import com.backtrader.finance.entity.Stock;
+import com.backtrader.finance.entity.StockPrice;
+import com.backtrader.finance.repository.StockDataRepository;
+import com.backtrader.finance.repository.StockMetaDataRepository;
+import com.backtrader.finance.repository.StockRespository;
+import com.google.gson.Gson;
+
+@Service
+<span class="fc" id="L22">public class StockDataService {</span>
+	@Autowired
+	private FinanceConfiguration financeConfiguration;
+	@Autowired
+	private StockRespository stockRespository;
+	@Autowired
+	private StockMetaDataRepository metaDataRepository;
+	@Autowired
+	private StockDataRepository dataRepository;
+
+	public String getStockPrice(Authentication authentication, String symbol, String function)
+			throws IOException, InterruptedException {
+<span class="nc" id="L34">		String apiKey = financeConfiguration.getKey();</span>
+
+<span class="nc" id="L36">		String apiUrl = &quot;https://www.alphavantage.co/query?function=&quot; + function + &quot;&amp;symbol=&quot; + symbol + &quot;&amp;apikey=&quot;</span>
+<span class="nc" id="L37">				+ apiKey + &quot;&amp;interval=&quot; + 5;</span>
+
+<span class="nc" id="L39">		HttpClient httpClient = HttpClient.newHttpClient();</span>
+<span class="nc" id="L40">		HttpRequest httpRequest = HttpRequest.newBuilder().GET().uri(URI.create(apiUrl)).build();</span>
+
+<span class="nc" id="L42">		HttpResponse&lt;String&gt; response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());</span>
+<span class="nc" id="L43">		String json = response.body();</span>
+<span class="nc" id="L44">		Gson gson = new Gson();</span>
+<span class="nc" id="L45">		StockPrice stockPrice = gson.fromJson(json, StockPrice.class);</span>
+<span class="nc" id="L46">		Stock stock = gson.fromJson(json, Stock.class);</span>
+<span class="nc" id="L47">		return null;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

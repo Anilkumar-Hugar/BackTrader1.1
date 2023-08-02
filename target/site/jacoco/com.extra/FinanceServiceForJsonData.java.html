@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FinanceServiceForJsonData.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">backtrader1.0</a> &gt; <a href="index.source.html" class="el_package">com.extra</a> &gt; <span class="el_source">FinanceServiceForJsonData.java</span></div><h1>FinanceServiceForJsonData.java</h1><pre class="source lang-java linenums">package com.extra;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.Date;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+
+import com.backtrader.repository.UserRepository;
+import com.backtrader.userentity.Users;
+import com.google.gson.Gson;
+
+@Service
+public class FinanceServiceForJsonData {
+	@Autowired
+	private StockRespository stockRespository;
+	@Autowired
+	private UserRepository userRepository;
+	private final FinanceConfiguration config;
+
+<span class="nc" id="L28">	public FinanceServiceForJsonData(FinanceConfiguration config) {</span>
+<span class="nc" id="L29">		this.config = config;</span>
+<span class="nc" id="L30">	}</span>
+
+	public ResponseEntity&lt;Object&gt; getStockAsJson(Authentication authentication, String symbol, String function)
+			throws IOException, InterruptedException {
+<span class="nc" id="L34">		String email = authentication.getName();</span>
+<span class="nc" id="L35">		Users users = userRepository.findByEmail(email);</span>
+<span class="nc bnc" id="L36" title="All 2 branches missed.">		if (users != null) {</span>
+<span class="nc" id="L37">			String apiKey = config.getKey();</span>
+
+<span class="nc" id="L39">			String apiUrl = &quot;https://www.alphavantage.co/query?function=&quot; + function + &quot;&amp;symbol=&quot; + symbol + &quot;&amp;apikey=&quot;</span>
+					+ apiKey + &quot;&amp;interval=&quot; + 5;
+
+<span class="nc" id="L42">			HttpClient httpClient = HttpClient.newHttpClient();</span>
+<span class="nc" id="L43">			HttpRequest httpRequest = HttpRequest.newBuilder().GET().uri(URI.create(apiUrl)).build();</span>
+
+<span class="nc" id="L45">			HttpResponse&lt;String&gt; response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());</span>
+<span class="nc" id="L46">			String json = response.body();</span>
+<span class="nc" id="L47">			Gson gson = new Gson();</span>
+<span class="nc" id="L48">			Stock stock = gson.fromJson(json, Stock.class);</span>
+
+<span class="nc" id="L50">			Date date = new Date();</span>
+<span class="nc" id="L51">			stock.setDate(date);</span>
+<span class="nc" id="L52">			stock.setNode(json);</span>
+<span class="nc" id="L53">			stock.setUserid(users);</span>
+
+<span class="nc" id="L55">			return ResponseEntity.status(HttpStatus.FOUND).body(stockRespository.save(stock));</span>
+		}
+<span class="nc" id="L57">		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(&quot;Stock not found&quot;);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

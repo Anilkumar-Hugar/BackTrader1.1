@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">backtrader1.0</a> &gt; <a href="index.source.html" class="el_package">com.backtrader.service</a> &gt; <span class="el_source">UserService.java</span></div><h1>UserService.java</h1><pre class="source lang-java linenums">package com.backtrader.service;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.backtrader.exception.NoValuePresentException;
+import com.backtrader.jwtconfiguration.JwtToken;
+import com.backtrader.model.UserModel;
+import com.backtrader.repository.ForgotPasswordTokenRepository;
+import com.backtrader.repository.UserRepository;
+import com.backtrader.requestresponse.ForgotPassword;
+import com.backtrader.requestresponse.ResetPassword;
+import com.backtrader.userentity.ForgotPasswordToken;
+import com.backtrader.userentity.Roles;
+import com.backtrader.userentity.Users;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Service
+<span class="fc" id="L40">@Setter</span>
+<span class="fc" id="L41">@Getter</span>
+<span class="fc" id="L42">@AllArgsConstructor</span>
+<span class="fc" id="L43">@NoArgsConstructor</span>
+public class UserService implements UserDetailsService {
+<span class="fc" id="L45">	Logger logger = LoggerFactory.getLogger(UserService.class);</span>
+<span class="fc" id="L46">	ForgotPasswordToken forgotPasswordToken = new ForgotPasswordToken();</span>
+	@Value(&quot;$(mail.username)&quot;)
+	private String username;
+<span class="fc" id="L49">	Date date = null;</span>
+<span class="fc" id="L50">	BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();</span>
+	@Autowired
+	private JavaMailSender javaMailSender;
+	@Autowired
+	private ForgotPasswordTokenRepository forgotPasswordTokenRepository;
+	@Autowired
+	private UserRepository userRepository;
+
+<span class="fc" id="L58">	public UserService(UserRepository userRepository, ForgotPasswordTokenRepository forgotPasswordTokenRepository) {</span>
+<span class="fc" id="L59">		this.userRepository = userRepository;</span>
+<span class="fc" id="L60">		this.forgotPasswordTokenRepository = forgotPasswordTokenRepository;</span>
+<span class="fc" id="L61">	}</span>
+
+	@Autowired
+	@Lazy
+	private JwtToken jwtToken;
+
+	public ResponseEntity&lt;String&gt; createUser(UserModel userModel) {
+<span class="fc bfc" id="L68" title="All 2 branches covered.">		if (userModel != null) {</span>
+<span class="fc" id="L69">			Users userdetails = userRepository.findByEmail(userModel.getEmail());</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">			if (userdetails != null) {</span>
+
+<span class="fc" id="L72">				return ResponseEntity.status(HttpStatus.FORBIDDEN).body(&quot;User Already Exist&quot;);</span>
+			} else {
+<span class="fc" id="L74">				Users users = new Users();</span>
+<span class="fc" id="L75">				users.setFirstname(userModel.getFirstname());</span>
+<span class="fc" id="L76">				users.setLastname(userModel.getLastname());</span>
+<span class="fc" id="L77">				users.setEmail(userModel.getEmail());</span>
+<span class="fc" id="L78">				users.setPassword(encoder.encode(userModel.getPassword()));</span>
+<span class="fc" id="L79">				users.setPhone(userModel.getPhone());</span>
+<span class="fc" id="L80">				Roles roles = new Roles();</span>
+<span class="fc" id="L81">				roles.setRole(&quot;USER&quot;);</span>
+<span class="fc" id="L82">				List&lt;Roles&gt; role = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L83">				role.add(roles);</span>
+<span class="fc" id="L84">				users.setRoles(role);</span>
+<span class="fc" id="L85">				userRepository.save(users);</span>
+<span class="fc" id="L86">				logger.info(&quot;User has been created with user name {}&quot;, users.getFirstname());</span>
+<span class="fc" id="L87">				return ResponseEntity.status(HttpStatus.CREATED).body(&quot;You have been signed up&quot;);</span>
+
+			}
+		} else {
+<span class="fc" id="L91">			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(&quot;User Details does not looks correct&quot;);</span>
+		}
+	}
+
+	public ResponseEntity&lt;String&gt; createAdmin(UserModel userModel, String token) {
+<span class="fc" id="L96">		logger.info(&quot;create admin method started with token {}&quot;, token);</span>
+<span class="fc" id="L97">		token = token.substring(7);</span>
+<span class="fc" id="L98">		String email = jwtToken.getUserNameFromToken(token);</span>
+<span class="fc" id="L99">		Users user = userRepository.findByEmail(email);</span>
+<span class="fc" id="L100">		logger.info(&quot;User details has been fetched {}&quot;, user);</span>
+<span class="fc" id="L101">		List&lt;Roles&gt; userRole = user.getRoles();</span>
+		try {
+<span class="fc" id="L103">			Roles userroles = userRole.stream().filter(role -&gt; role.getRole().equals(&quot;ADMIN&quot;)).findFirst()</span>
+<span class="fc" id="L104">					.orElseThrow(() -&gt; new NoValuePresentException(&quot;User has no access to register to the admin&quot;));</span>
+<span class="fc" id="L105">			String userrole = userroles.getRole();</span>
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">			if (userrole.equals(&quot;ADMIN&quot;)) {</span>
+<span class="fc" id="L107">				Users userdetails = userRepository.findByEmail(userModel.getEmail());</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">				if (userdetails != null) {</span>
+<span class="fc" id="L109">					return ResponseEntity.status(HttpStatus.FORBIDDEN).body(&quot;User Already Exist&quot;);</span>
+				} else {
+<span class="fc" id="L111">					Users users = new Users();</span>
+<span class="fc" id="L112">					users.setFirstname(userModel.getFirstname());</span>
+<span class="fc" id="L113">					users.setLastname(userModel.getLastname());</span>
+<span class="fc" id="L114">					users.setEmail(userModel.getEmail());</span>
+<span class="fc" id="L115">					users.setPassword(encoder.encode(userModel.getPassword()));</span>
+<span class="fc" id="L116">					users.setPhone(userModel.getPhone());</span>
+<span class="fc" id="L117">					Roles roles = new Roles();</span>
+<span class="fc" id="L118">					roles.setRole(&quot;ADMIN&quot;);</span>
+<span class="fc" id="L119">					List&lt;Roles&gt; role = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L120">					role.add(roles);</span>
+<span class="fc" id="L121">					users.setRoles(role);</span>
+<span class="fc" id="L122">					userRepository.save(users);</span>
+<span class="fc" id="L123">					logger.info(&quot;Admin has been created with the admin name {}&quot;, users.getFirstname());</span>
+<span class="fc" id="L124">					return ResponseEntity.status(HttpStatus.CREATED).body(&quot;You have been signed up&quot;);</span>
+
+				}
+			}
+<span class="fc" id="L128">		} catch (NoValuePresentException ex) {</span>
+<span class="fc" id="L129">			logger.info(&quot;exception occured at admin registration {}&quot;, ex.getMessage());</span>
+<span class="fc" id="L130">			return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());</span>
+		}
+<span class="nc" id="L132">		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);</span>
+	}
+
+	@Override
+	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+<span class="fc" id="L137">		Users user = userRepository.findByEmail(username);</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">		if (user != null) {</span>
+<span class="fc" id="L139">			return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(),</span>
+<span class="fc" id="L140">					user.getRoles());</span>
+
+		} else {
+<span class="fc" id="L143">			logger.info(&quot;User Does not exist&quot;);</span>
+<span class="fc" id="L144">			throw new UsernameNotFoundException(&quot;Unable to fetch user details&quot;);</span>
+		}
+	}
+
+	public String forgotPasswordTokenGenarate(String email) {
+<span class="fc" id="L149">		Users users = userRepository.findByEmail(email);</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">		if (users != null) {</span>
+<span class="fc" id="L151">			String token = UUID.randomUUID().toString();</span>
+<span class="fc" id="L152">			forgotPasswordToken.setToken(token);</span>
+<span class="fc" id="L153">			forgotPasswordToken.setUsers(users);</span>
+<span class="fc" id="L154">			forgotPasswordToken.setTokenCreatedTime(new Date(System.currentTimeMillis() + 3600000).getTime());</span>
+<span class="fc" id="L155">			forgotPasswordTokenRepository.save(forgotPasswordToken);</span>
+<span class="fc" id="L156">			return token;</span>
+		}
+<span class="fc" id="L158">		return &quot;User does not exist&quot;;</span>
+	}
+
+	public ResponseEntity&lt;String&gt; forgotPassword(ForgotPassword forgotPassword) {
+<span class="fc" id="L162">		Users users = userRepository.findByEmail(forgotPassword.getEmail());</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">		if (users != null) {</span>
+<span class="fc" id="L164">			String token = this.forgotPasswordTokenGenarate(forgotPassword.getEmail());</span>
+<span class="fc" id="L165">			SimpleMailMessage mailMessage = new SimpleMailMessage();</span>
+<span class="fc" id="L166">			mailMessage.setFrom(username);</span>
+<span class="fc" id="L167">			mailMessage.setTo(forgotPassword.getEmail());</span>
+<span class="fc" id="L168">			mailMessage.setSubject(&quot;Reset password link&quot;);</span>
+<span class="fc" id="L169">			mailMessage.setText(&quot;Click on the below link to reset the password \n&quot;</span>
+<span class="fc" id="L170">					+ &quot;http://localhost:3000/reset-password?token=&quot; + token);</span>
+<span class="fc" id="L171">			javaMailSender.send(mailMessage);</span>
+<span class="fc" id="L172">			date = new Date(System.currentTimeMillis());</span>
+<span class="fc" id="L173">			return ResponseEntity.status(HttpStatus.ACCEPTED)</span>
+<span class="fc" id="L174">					.body(&quot;Email has been sent with reset link. reset your password within 1 hour&quot;);</span>
+		} else
+<span class="fc" id="L176">			return ResponseEntity.status(HttpStatus.BAD_REQUEST)</span>
+<span class="fc" id="L177">					.body(&quot;User Doesnot exist.. Please enter the valid email.&quot;);</span>
+	}
+
+	public ResponseEntity&lt;String&gt; resetPassword(String token, ResetPassword resetPassword) {
+<span class="fc" id="L181">		ForgotPasswordToken passwordToken = forgotPasswordTokenRepository.findByToken(token);</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">		if (passwordToken != null</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">				&amp;&amp; passwordToken.getTokenCreatedTime() &gt; (new Date(System.currentTimeMillis())).getTime()) {</span>
+<span class="fc" id="L184">			Users users = passwordToken.getUsers();</span>
+
+<span class="pc bpc" id="L186" title="1 of 4 branches missed.">			if (users != null &amp;&amp; resetPassword.getNewPassword().equals(resetPassword.getConfirmPassword())</span>
+<span class="pc bpc" id="L187" title="1 of 2 branches missed.">					&amp;&amp; passwordToken.getToken().equals(token)) {</span>
+<span class="fc" id="L188">				users.setPassword(encoder.encode(resetPassword.getNewPassword()));</span>
+<span class="fc" id="L189">				userRepository.save(users);</span>
+<span class="fc" id="L190">				forgotPasswordTokenRepository.delete(passwordToken);</span>
+<span class="fc" id="L191">				return ResponseEntity.status(HttpStatus.OK).body(&quot;Password has been changed&quot;);</span>
+			} else {
+<span class="fc" id="L193">				forgotPasswordTokenRepository.delete(passwordToken);</span>
+<span class="fc" id="L194">				return ResponseEntity.status(HttpStatus.CONFLICT)</span>
+<span class="fc" id="L195">						.body(&quot;New Password should not be same as old password&quot;);</span>
+			}
+
+		}
+<span class="fc" id="L199">		forgotPasswordTokenRepository.delete(passwordToken);</span>
+<span class="fc" id="L200">		return ResponseEntity.status(HttpStatus.BANDWIDTH_LIMIT_EXCEEDED)</span>
+<span class="fc" id="L201">				.body(&quot;The link might be expired please regenerate the link&quot;);</span>
+	}
+
+	public Users findByEmail(String email) {
+<span class="fc" id="L205">		return userRepository.findByEmail(email);</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

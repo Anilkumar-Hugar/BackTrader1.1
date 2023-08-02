@@ -1,0 +1,56 @@
+#version: '3'
+#services:
+#  db:
+#    image: 'trader-app'
+#    ports:
+#      - 5432:5432
+#    environment:
+#      POSTGRES_USER: postgres
+#      POSTGRES_PASSWORD: seneca123$
+#      POSTGRES_DB: StockTask
+#
+#  trader-app:
+#    build: 
+#       context: .
+#    ports:
+#      - 8080:9090
+#    depends_on:
+#      - db
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://PostgreSQL:5432/StockTask
+#      SPRING_DATASOURCE_USERNAME: postgres
+#      SPRING_DATASOURCE_PASSWORD: seneca123$
+
+      
+
+
+
+version: '3'
+services:
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: StockTask
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  spring-app:
+    build: .
+    ports:
+      - "9090:9090"
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/StockTask
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 1234
+volumes:
+  postgres-data:
+
+  
+   

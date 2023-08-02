@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BuySellStockService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">backtrader1.0</a> &gt; <a href="index.source.html" class="el_package">com.backtrader.service</a> &gt; <span class="el_source">BuySellStockService.java</span></div><h1>BuySellStockService.java</h1><pre class="source lang-java linenums">package com.backtrader.service;
+
+import java.text.DecimalFormat;
+import java.util.Date;
+import java.util.List;
+
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import com.backtrader.jwtconfiguration.JwtToken;
+import com.backtrader.repository.BuyStockRepository;
+import com.backtrader.repository.OrdersRepository;
+import com.backtrader.repository.SellStockRepository;
+import com.backtrader.repository.UserRepository;
+import com.backtrader.userentity.BuyStock;
+import com.backtrader.userentity.Order;
+import com.backtrader.userentity.SellStock;
+import com.backtrader.userentity.Users;
+
+@Service
+<span class="fc" id="L27">public class BuySellStockService {</span>
+
+	@Value(&quot;${api.value}&quot;)
+	String apikey;
+
+	@Autowired
+	private SellStockRepository sellStockRepository;
+
+	@Autowired
+	private UserRepository userRepository;
+
+	@Autowired
+	private BuyStockRepository buyStockRepository;
+
+	@Autowired
+	private OrdersRepository ordersRepository;
+	@Autowired
+	private JwtToken jwtToken;
+<span class="fc" id="L45">	final DecimalFormat decimalFormat = new DecimalFormat(&quot;#0.00&quot;);</span>
+
+<span class="fc" id="L47">	Logger logger = org.slf4j.LoggerFactory.getLogger(BuySellStockService.class);</span>
+<span class="fc" id="L48">	private final RestTemplate restTemplate = new RestTemplate();</span>
+
+	public String symbolData(String symbol) throws RestClientException {
+
+<span class="nc" id="L52">		String apiUrl = &quot;https://www.alphavantage.co/query?function=GLOBAL_QUOTE&quot; + &quot;&amp;symbol=&quot; + symbol + &quot;&amp;apikey=&quot;</span>
+<span class="nc" id="L53">				+ apikey;</span>
+<span class="nc" id="L54">		logger.info(&quot;updated data has been fetched for {}&quot;, symbol);</span>
+<span class="nc" id="L55">		ResponseEntity&lt;String&gt; response = restTemplate.getForEntity(apiUrl, String.class);</span>
+<span class="nc" id="L56">		return response.getBody();</span>
+
+	}
+
+	public String getPricefromJSON(String jsonData) {
+<span class="nc" id="L61">		JSONObject jsonObject = new JSONObject(jsonData);</span>
+<span class="nc" id="L62">		return decimalFormat</span>
+<span class="nc" id="L63">				.format(Double.parseDouble(jsonObject.getJSONObject(&quot;Global Quote&quot;).getString(&quot;05. price&quot;)));</span>
+
+	}
+
+	public String sellStock(String token, String symbol, int quantity) throws RestClientException {
+<span class="nc" id="L68">		token = token.substring(7);</span>
+<span class="nc" id="L69">		String email = jwtToken.getUserNameFromToken(token);</span>
+<span class="nc" id="L70">		Users userData = userRepository.findByEmail(email);</span>
+<span class="nc" id="L71">		logger.info(&quot;User {} is selling stocks of {} of quantity {}&quot;, userData.getFirstname(), symbol, quantity);</span>
+<span class="nc" id="L72">		Order newOrder = new Order();</span>
+<span class="nc" id="L73">		newOrder.setQuantity(quantity);</span>
+<span class="nc" id="L74">		BuyStock item = buyStockRepository.findBySymbolAndUser(symbol, userData);</span>
+<span class="nc bnc" id="L75" title="All 4 branches missed.">		if (item != null &amp;&amp; quantity &lt;= item.getQuantity()) {</span>
+<span class="nc" id="L76">			String jsonData = symbolData(symbol);</span>
+<span class="nc" id="L77">			String strPrice = getPricefromJSON(jsonData);</span>
+<span class="nc" id="L78">			double price = Double.parseDouble(strPrice);</span>
+<span class="nc" id="L79">			logger.info(&quot; current price is {}&quot;, price);</span>
+<span class="nc" id="L80">			double totalprice = quantity * price;</span>
+<span class="nc" id="L81">			item.setQuantity(item.getQuantity() - quantity);</span>
+<span class="nc" id="L82">			SellStock buy = new SellStock();</span>
+<span class="nc" id="L83">			Date currentDate = new Date(System.currentTimeMillis());</span>
+<span class="nc" id="L84">			buy.setDate(currentDate);</span>
+<span class="nc" id="L85">			buy.setPrice(price);</span>
+<span class="nc" id="L86">			buy.setSymbol(symbol);</span>
+<span class="nc" id="L87">			buy.setUser(userData);</span>
+<span class="nc" id="L88">			buy.setType(&quot;SELL&quot;);</span>
+<span class="nc" id="L89">			buy.setQuantity(quantity);</span>
+<span class="nc" id="L90">			buy.setAvgPrice(totalprice);</span>
+<span class="nc" id="L91">			sellStockRepository.save(buy);</span>
+<span class="nc" id="L92">			logger.info(&quot;User {} sold stocks {}  of quantity {}&quot;, userData.getFirstname(), symbol, quantity);</span>
+<span class="nc" id="L93">			newOrder.setTime(currentDate.toString());</span>
+<span class="nc" id="L94">			newOrder.setType(&quot;SELL&quot;);</span>
+<span class="nc" id="L95">			newOrder.setAvgPrice(buy.getAvgPrice());</span>
+<span class="nc" id="L96">			newOrder.setSymbol(symbol);</span>
+<span class="nc" id="L97">			newOrder.setUser(userData);</span>
+<span class="nc" id="L98">			newOrder.setStatus(&quot;OPEN&quot;);</span>
+<span class="nc" id="L99">			ordersRepository.save(newOrder);</span>
+<span class="nc" id="L100">			return &quot;SOLD_STOCK&quot;;</span>
+		}
+<span class="nc" id="L102">		logger.info(&quot;User {} have trouble selling Stock&quot;, userData.getFirstname());</span>
+<span class="nc" id="L103">		return &quot;USER_DON'T_HAVE_ENOUGH_QUANTITY_TO_SELL or NO_STOCK_BROUGHT_BY_THIS_USER&quot;;</span>
+	}
+
+	public String buyStock(String token, String symbol, double price, int quantity) {
+<span class="nc" id="L107">		token = token.substring(7);</span>
+<span class="nc" id="L108">		String email = jwtToken.getUserNameFromToken(token);</span>
+<span class="nc" id="L109">		Users userData = userRepository.findByEmail(email);</span>
+<span class="nc" id="L110">		Order newOrder = new Order();</span>
+<span class="nc" id="L111">		newOrder.setQuantity(quantity);</span>
+<span class="nc" id="L112">		logger.info(&quot;User {} is buying stocks of {} of quantity {}&quot;, userData.getFirstname(), symbol, quantity);</span>
+<span class="nc" id="L113">		BuyStock item = buyStockRepository.findBySymbolAndUser(symbol, userData);</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">		if (item != null) {</span>
+<span class="nc" id="L115">			int oldQuantity = item.getQuantity();</span>
+<span class="nc" id="L116">			double oldAvgPrice = item.getAvgPrice();</span>
+<span class="nc" id="L117">			double updatedprice = oldAvgPrice + (quantity * price);</span>
+<span class="nc" id="L118">			quantity = oldQuantity + quantity;</span>
+<span class="nc" id="L119">			item.setQuantity(quantity);</span>
+<span class="nc" id="L120">			item.setPrice(price);</span>
+<span class="nc" id="L121">			item.setAvgPrice(updatedprice);</span>
+<span class="nc" id="L122">			Date date = new Date(System.currentTimeMillis());</span>
+<span class="nc" id="L123">			item.setDate(date);</span>
+<span class="nc" id="L124">			item.setSymbol(symbol);</span>
+<span class="nc" id="L125">			item.setType(&quot;BUY&quot;);</span>
+<span class="nc" id="L126">			item.setUser(userData);</span>
+<span class="nc" id="L127">			newOrder.setAvgPrice(item.getAvgPrice());</span>
+<span class="nc" id="L128">			buyStockRepository.save(item);</span>
+<span class="nc" id="L129">		} else {</span>
+<span class="nc" id="L130">			BuyStock newitem = new BuyStock();</span>
+<span class="nc" id="L131">			double totalprice = (quantity * price);</span>
+<span class="nc" id="L132">			newitem.setQuantity(quantity);</span>
+<span class="nc" id="L133">			newitem.setAvgPrice(totalprice);</span>
+<span class="nc" id="L134">			Date date = new Date();</span>
+<span class="nc" id="L135">			newitem.setDate(date);</span>
+<span class="nc" id="L136">			newitem.setPrice(price);</span>
+<span class="nc" id="L137">			newitem.setSymbol(symbol);</span>
+<span class="nc" id="L138">			newitem.setType(&quot;BUY&quot;);</span>
+<span class="nc" id="L139">			newitem.setUser(userData);</span>
+<span class="nc" id="L140">			newOrder.setAvgPrice(newitem.getAvgPrice());</span>
+<span class="nc" id="L141">			buyStockRepository.save(newitem);</span>
+
+		}
+<span class="nc" id="L144">		newOrder.setTime(new Date(System.currentTimeMillis()).toString());</span>
+<span class="nc" id="L145">		newOrder.setType(&quot;BUY&quot;);</span>
+<span class="nc" id="L146">		newOrder.setSymbol(symbol);</span>
+<span class="nc" id="L147">		newOrder.setUser(userData);</span>
+<span class="nc" id="L148">		newOrder.setStatus(&quot;OPEN&quot;);</span>
+<span class="nc" id="L149">		ordersRepository.save(newOrder);</span>
+<span class="nc" id="L150">		logger.info(&quot;User {} brought stocks of {} of quantity {} where each unit costs {}&quot;, userData.getFirstname(),</span>
+<span class="nc" id="L151">				symbol, quantity, price);</span>
+<span class="nc" id="L152">		return &quot;BUYING_STOCK&quot;;</span>
+	}
+
+	public List&lt;Order&gt; orders(String token) {
+<span class="nc" id="L156">		token = token.substring(7);</span>
+<span class="nc" id="L157">		String email = jwtToken.getUserNameFromToken(token);</span>
+<span class="nc" id="L158">		Users userData = userRepository.findByEmail(email);</span>
+<span class="nc" id="L159">		return ordersRepository.findAllByUser(userData);</span>
+	}
+	
+	public String getSystemUpdatedStock(String token,String symbol) {
+<span class="nc" id="L163">		token=token.substring(7);</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">		if(jwtToken.validateJwtToken(token)) {</span>
+<span class="nc" id="L165">			 return symbolData(symbol);</span>
+			 //convert values of prices into 2 decimal values
+		}
+		else
+<span class="nc" id="L169">			return &quot;Inavlid token&quot;;</span>
+		
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

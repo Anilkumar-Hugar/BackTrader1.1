@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FinanceServiceDuplicate.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">backtrader1.0</a> &gt; <a href="index.source.html" class="el_package">com.backtrader.service</a> &gt; <span class="el_source">FinanceServiceDuplicate.java</span></div><h1>FinanceServiceDuplicate.java</h1><pre class="source lang-java linenums">package com.backtrader.service;
+
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.backtrader.jwtconfiguration.JwtToken;
+import com.backtrader.repository.StockDataWithSymbolRepository;
+import com.backtrader.repository.StockRespository;
+import com.backtrader.repository.UserRepository;
+import com.backtrader.userentity.MetaData;
+import com.backtrader.userentity.Stock;
+import com.backtrader.userentity.StockData;
+import com.backtrader.userentity.StockDataWithSymbol;
+import com.backtrader.userentity.StockPrice;
+import com.backtrader.userentity.Users;
+import com.google.gson.Gson;
+
+@Service
+<span class="fc" id="L28">public class FinanceServiceDuplicate {</span>
+<span class="fc" id="L29">	Logger logger = LoggerFactory.getLogger(FinanceServiceDuplicate.class);</span>
+	@Autowired
+	private StockRespository stockRespository;
+	@Autowired
+	private StockDataWithSymbolRepository stockDataWithSymbolRepository;
+	@Autowired
+	private UserRepository userRepository;
+	@Autowired
+	private FinanceAPICall financeAPICall;
+	@Autowired
+	private JwtToken jwtToken;
+
+	public List&lt;StockDataWithSymbol&gt; getStockPrice(String token, String symbol, String function) {
+<span class="nc" id="L42">		DecimalFormat decimalFormat = new DecimalFormat(&quot;#0.00&quot;);</span>
+<span class="nc" id="L43">		List&lt;String&gt; information = new ArrayList&lt;&gt;(List.of(&quot;Intraday (5) open, high, low, close prices and volume&quot;,</span>
+<span class="nc" id="L44">				&quot;Daily Time Series with Splits and Dividend Events&quot;,</span>
+<span class="nc" id="L45">				&quot;Weekly Prices (open, high, low, close) and Volumes&quot;,</span>
+<span class="nc" id="L46">				&quot;Monthly Prices (open, high, low, close) and Volumes&quot;));</span>
+<span class="nc" id="L47">		token = token.substring(7);</span>
+<span class="nc" id="L48">		String username = jwtToken.getUserNameFromToken(token);</span>
+<span class="nc" id="L49">		String json = financeAPICall.getStockPrice(symbol, function);</span>
+<span class="nc" id="L50">		Gson gson = new Gson();</span>
+<span class="nc" id="L51">		StockPrice stockPrice = gson.fromJson(json, StockPrice.class);</span>
+<span class="nc" id="L52">		Stock stock = gson.fromJson(json, Stock.class);</span>
+<span class="nc" id="L53">		stock.setDate(new Date());</span>
+<span class="nc" id="L54">		stock.setNode(json);</span>
+<span class="nc" id="L55">		stock.setSymbol(symbol);</span>
+<span class="nc" id="L56">		MetaData metaData = stockPrice.getMetaData();</span>
+<span class="nc" id="L57">		StockData stockData = null;</span>
+<span class="nc" id="L58">		Users users = userRepository.findByEmail(username);</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">		if (users != null) {</span>
+<span class="nc" id="L60">			stock.setUserid(users);</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">			if (function.equals(&quot;TIME_SERIES_MONTHLY&quot;)) {</span>
+
+<span class="nc" id="L63">				stockRespository.save(stock);</span>
+<span class="nc" id="L64">				List&lt;StockDataWithSymbol&gt; stockDataWithSymbolList = stockDataWithSymbolRepository</span>
+<span class="nc" id="L65">						.findByInformationAndSymbol(information.get(3), symbol);</span>
+<span class="nc" id="L66">				List&lt;StockDataWithSymbol&gt; stockdatalist = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">				if (stockDataWithSymbolList.isEmpty()) {</span>
+<span class="nc" id="L68">					int size = 0;</span>
+
+<span class="nc bnc" id="L70" title="All 2 branches missed.">					for (Map.Entry&lt;String, StockData&gt; entry : stockPrice.getStockMonthly().entrySet()) {</span>
+
+<span class="nc" id="L72">						String date = entry.getKey();</span>
+<span class="nc" id="L73">						stockData = entry.getValue();</span>
+<span class="nc" id="L74">						StockDataWithSymbol dataWithSymbol = new StockDataWithSymbol();</span>
+<span class="nc" id="L75">						dataWithSymbol.setSymbol(metaData.getSymbol());</span>
+<span class="nc" id="L76">						dataWithSymbol.setDate(date);</span>
+<span class="nc" id="L77">						dataWithSymbol.setHighPrice(decimalFormat.format(Double.valueOf(stockData.getHigh())));</span>
+<span class="nc" id="L78">						dataWithSymbol.setLowPrice(decimalFormat.format(Double.valueOf(stockData.getLow())));</span>
+<span class="nc" id="L79">						dataWithSymbol.setClosedPrice(decimalFormat.format(Double.valueOf(stockData.getClose())));</span>
+<span class="nc" id="L80">						dataWithSymbol.setOpenPrice(decimalFormat.format(Double.valueOf(stockData.getOpen())));</span>
+<span class="nc" id="L81">						dataWithSymbol.setInformation(metaData.getInformation());</span>
+<span class="nc" id="L82">						dataWithSymbol.setUsers(users);</span>
+<span class="nc" id="L83">						size++;</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">						if (size &gt;= 31)</span>
+<span class="nc" id="L85">							break;</span>
+<span class="nc" id="L86">						stockdatalist.add(dataWithSymbol);</span>
+					}
+<span class="nc" id="L88">					return stockDataWithSymbolRepository.saveAll(stockdatalist);</span>
+
+				} else {
+<span class="nc" id="L91">					int size = 0;</span>
+<span class="nc" id="L92">					StockDataWithSymbol stockValues = new StockDataWithSymbol();</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">					for (Map.Entry&lt;String, StockData&gt; entry : stockPrice.getStockMonthly().entrySet()) {</span>
+<span class="nc" id="L94">						++size;</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">						if (size &gt;= 31)</span>
+<span class="nc" id="L96">							break;</span>
+<span class="nc" id="L97">						String date = entry.getKey();</span>
+<span class="nc" id="L98">						stockData = entry.getValue();</span>
+<span class="nc" id="L99">						stockValues.setSymbol(symbol);</span>
+<span class="nc" id="L100">						stockValues.setHighPrice(decimalFormat.format(Double.valueOf(stockData.getHigh())));</span>
+<span class="nc" id="L101">						stockValues.setLowPrice(decimalFormat.format(Double.valueOf(stockData.getLow())));</span>
+<span class="nc" id="L102">						stockValues.setClosedPrice(decimalFormat.format(Double.valueOf(stockData.getClose())));</span>
+<span class="nc" id="L103">						stockValues.setDate(date);</span>
+<span class="nc" id="L104">						stockValues.setOpenPrice(decimalFormat.format(Double.valueOf(stockData.getOpen())));</span>
+<span class="nc" id="L105">						stockValues.setId(stockDataWithSymbolList.get(size - 1).getId());</span>
+<span class="nc" id="L106">						stockValues.setInformation(metaData.getInformation());</span>
+<span class="nc" id="L107">						stockValues.setUsers(users);</span>
+<span class="nc" id="L108">						stockDataWithSymbolRepository.save(stockValues);</span>
+					}
+<span class="nc" id="L110">					logger.info(&quot;Stored stock data {}&quot;, stockDataWithSymbolList);</span>
+<span class="nc" id="L111">					return stockDataWithSymbolRepository.findByInformationAndSymbol(information.get(3), symbol);</span>
+				}
+
+<span class="nc bnc" id="L114" title="All 2 branches missed.">			} else if (function.equals(&quot;TIME_SERIES_WEEKLY&quot;)) {</span>
+<span class="nc" id="L115">				stockRespository.save(stock);</span>
+<span class="nc" id="L116">				List&lt;StockDataWithSymbol&gt; stockDataWithSymbolList = stockDataWithSymbolRepository</span>
+<span class="nc" id="L117">						.findByInformationAndSymbol(information.get(2), symbol);</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">				if (stockDataWithSymbolList.isEmpty()) {</span>
+<span class="nc" id="L119">					int size = 0;</span>
+<span class="nc" id="L120">					List&lt;StockDataWithSymbol&gt; stockdatalist = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">					for (Map.Entry&lt;String, StockData&gt; entry : stockPrice.getStockweekly().entrySet()) {</span>
+
+<span class="nc" id="L123">						String date = entry.getKey();</span>
+<span class="nc" id="L124">						stockData = entry.getValue();</span>
+<span class="nc" id="L125">						StockDataWithSymbol dataWithSymbol = new StockDataWithSymbol();</span>
+<span class="nc" id="L126">						dataWithSymbol.setSymbol(metaData.getSymbol());</span>
+<span class="nc" id="L127">						dataWithSymbol.setDate(date);</span>
+<span class="nc" id="L128">						dataWithSymbol.setHighPrice(decimalFormat.format(Double.valueOf(stockData.getHigh())));</span>
+<span class="nc" id="L129">						dataWithSymbol.setLowPrice(decimalFormat.format(Double.valueOf(stockData.getLow())));</span>
+<span class="nc" id="L130">						dataWithSymbol.setClosedPrice(decimalFormat.format(Double.valueOf(stockData.getClose())));</span>
+<span class="nc" id="L131">						dataWithSymbol.setOpenPrice(decimalFormat.format(Double.valueOf(stockData.getOpen())));</span>
+<span class="nc" id="L132">						dataWithSymbol.setInformation(metaData.getInformation());</span>
+<span class="nc" id="L133">						dataWithSymbol.setUsers(users);</span>
+<span class="nc" id="L134">						size++;</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">						if (size &gt;= 31)</span>
+<span class="nc" id="L136">							break;</span>
+<span class="nc" id="L137">						stockdatalist.add(dataWithSymbol);</span>
+					}
+<span class="nc" id="L139">					return stockDataWithSymbolRepository.saveAll(stockdatalist);</span>
+
+				} else {
+<span class="nc" id="L142">					int size = 0;</span>
+<span class="nc" id="L143">					StockDataWithSymbol stockValues = new StockDataWithSymbol();</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">					for (Map.Entry&lt;String, StockData&gt; entry : stockPrice.getStockweekly().entrySet()) {</span>
+<span class="nc" id="L145">						++size;</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">						if (size &gt;= 31)</span>
+<span class="nc" id="L147">							break;</span>
+<span class="nc" id="L148">						String date = entry.getKey();</span>
+<span class="nc" id="L149">						stockData = entry.getValue();</span>
+
+<span class="nc" id="L151">						stockValues.setSymbol(symbol);</span>
+<span class="nc" id="L152">						stockValues.setHighPrice(decimalFormat.format(Double.valueOf(stockData.getHigh())));</span>
+<span class="nc" id="L153">						stockValues.setLowPrice(decimalFormat.format(Double.valueOf(stockData.getLow())));</span>
+<span class="nc" id="L154">						stockValues.setClosedPrice(decimalFormat.format(Double.valueOf(stockData.getClose())));</span>
+<span class="nc" id="L155">						stockValues.setDate(date);</span>
+<span class="nc" id="L156">						stockValues.setOpenPrice(decimalFormat.format(Double.valueOf(stockData.getOpen())));</span>
+<span class="nc" id="L157">						stockValues.setId(stockDataWithSymbolList.get(size - 1).getId());</span>
+<span class="nc" id="L158">						stockValues.setInformation(metaData.getInformation());</span>
+<span class="nc" id="L159">						stockValues.setUsers(users);</span>
+<span class="nc" id="L160">						stockDataWithSymbolRepository.save(stockValues);</span>
+					}
+<span class="nc" id="L162">					logger.info(&quot;Stored stock data {}&quot;,</span>
+<span class="nc" id="L163">							stockDataWithSymbolRepository.findByInformationAndSymbol(information.get(2), symbol));</span>
+<span class="nc" id="L164">					return stockDataWithSymbolRepository.findByInformationAndSymbol(information.get(2), symbol);</span>
+				}
+<span class="nc bnc" id="L166" title="All 2 branches missed.">			} else if (function.equals(&quot;TIME_SERIES_DAILY_ADJUSTED&quot;)) {</span>
+<span class="nc" id="L167">				stockRespository.save(stock);</span>
+<span class="nc" id="L168">				List&lt;StockDataWithSymbol&gt; stockDataWithSymbolList = stockDataWithSymbolRepository</span>
+<span class="nc" id="L169">						.findByInformationAndSymbol(information.get(1), symbol);</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">				if (stockDataWithSymbolList.isEmpty()) {</span>
+<span class="nc" id="L171">					int size = 0;</span>
+<span class="nc" id="L172">					List&lt;StockDataWithSymbol&gt; stockdatalist = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">					for (Map.Entry&lt;String, StockData&gt; entry : stockPrice.getStockdaily().entrySet()) {</span>
+
+<span class="nc" id="L175">						String date = entry.getKey();</span>
+<span class="nc" id="L176">						stockData = entry.getValue();</span>
+<span class="nc" id="L177">						StockDataWithSymbol dataWithSymbol = new StockDataWithSymbol();</span>
+<span class="nc" id="L178">						dataWithSymbol.setSymbol(metaData.getSymbol());</span>
+<span class="nc" id="L179">						dataWithSymbol.setDate(date);</span>
+<span class="nc" id="L180">						dataWithSymbol.setHighPrice(decimalFormat.format(Double.valueOf(stockData.getHigh())));</span>
+<span class="nc" id="L181">						dataWithSymbol.setLowPrice(decimalFormat.format(Double.valueOf(stockData.getLow())));</span>
+<span class="nc" id="L182">						dataWithSymbol.setClosedPrice(decimalFormat.format(Double.valueOf(stockData.getClose())));</span>
+<span class="nc" id="L183">						dataWithSymbol.setOpenPrice(decimalFormat.format(Double.valueOf(stockData.getOpen())));</span>
+<span class="nc" id="L184">						dataWithSymbol.setInformation(metaData.getInformation());</span>
+<span class="nc" id="L185">						dataWithSymbol.setUsers(users);</span>
+<span class="nc" id="L186">						size++;</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">						if (size &gt;= 31)</span>
+<span class="nc" id="L188">							break;</span>
+<span class="nc" id="L189">						stockdatalist.add(dataWithSymbol);</span>
+					}
+<span class="nc" id="L191">					return stockDataWithSymbolRepository.saveAll(stockdatalist);</span>
+
+				} else {
+<span class="nc" id="L194">					int size = 0;</span>
+<span class="nc" id="L195">					StockDataWithSymbol stockValues = new StockDataWithSymbol();</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">					for (Map.Entry&lt;String, StockData&gt; entry : stockPrice.getStockdaily().entrySet()) {</span>
+<span class="nc" id="L197">						++size;</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">						if (size &gt;= 31)</span>
+<span class="nc" id="L199">							break;</span>
+<span class="nc" id="L200">						String date = entry.getKey();</span>
+<span class="nc" id="L201">						stockData = entry.getValue();</span>
+
+<span class="nc" id="L203">						stockValues.setSymbol(symbol);</span>
+<span class="nc" id="L204">						stockValues.setHighPrice(decimalFormat.format(Double.valueOf(stockData.getHigh())));</span>
+<span class="nc" id="L205">						stockValues.setLowPrice(decimalFormat.format(Double.valueOf(stockData.getLow())));</span>
+<span class="nc" id="L206">						stockValues.setClosedPrice(decimalFormat.format(Double.valueOf(stockData.getClose())));</span>
+<span class="nc" id="L207">						stockValues.setDate(date);</span>
+<span class="nc" id="L208">						stockValues.setOpenPrice(decimalFormat.format(Double.valueOf(stockData.getOpen())));</span>
+<span class="nc" id="L209">						stockValues.setId(stockDataWithSymbolList.get(size - 1).getId());</span>
+<span class="nc" id="L210">						stockValues.setInformation(metaData.getInformation());</span>
+<span class="nc" id="L211">						stockValues.setUsers(users);</span>
+<span class="nc" id="L212">						stockDataWithSymbolRepository.save(stockValues);</span>
+					}
+<span class="nc" id="L214">					return stockDataWithSymbolRepository.findByInformationAndSymbol(information.get(1), symbol);</span>
+				}
+<span class="nc bnc" id="L216" title="All 2 branches missed.">			} else if (function.equals(&quot;TIME_SERIES_INTRADAY&quot;)) {</span>
+<span class="nc" id="L217">				stockRespository.save(stock);</span>
+<span class="nc" id="L218">				List&lt;StockDataWithSymbol&gt; stockDataWithSymbolList = stockDataWithSymbolRepository</span>
+<span class="nc" id="L219">						.findByInformationAndSymbol(information.get(0), symbol);</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">				if (stockDataWithSymbolList.isEmpty()) {</span>
+<span class="nc" id="L221">					int size = 0;</span>
+<span class="nc" id="L222">					List&lt;StockDataWithSymbol&gt; stockdatalist = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">					for (Map.Entry&lt;String, StockData&gt; entry : stockPrice.getStockIntraDay().entrySet()) {</span>
+
+<span class="nc" id="L225">						String date = entry.getKey();</span>
+<span class="nc" id="L226">						stockData = entry.getValue();</span>
+<span class="nc" id="L227">						StockDataWithSymbol dataWithSymbol = new StockDataWithSymbol();</span>
+<span class="nc" id="L228">						dataWithSymbol.setSymbol(metaData.getSymbol());</span>
+<span class="nc" id="L229">						dataWithSymbol.setDate(date);</span>
+<span class="nc" id="L230">						dataWithSymbol.setHighPrice(decimalFormat.format(Double.valueOf(stockData.getHigh())));</span>
+<span class="nc" id="L231">						dataWithSymbol.setLowPrice(decimalFormat.format(Double.valueOf(stockData.getLow())));</span>
+<span class="nc" id="L232">						dataWithSymbol.setClosedPrice(decimalFormat.format(Double.valueOf(stockData.getClose())));</span>
+<span class="nc" id="L233">						dataWithSymbol.setOpenPrice(decimalFormat.format(Double.valueOf(stockData.getOpen())));</span>
+<span class="nc" id="L234">						dataWithSymbol.setInformation(metaData.getInformation());</span>
+<span class="nc" id="L235">						dataWithSymbol.setUsers(users);</span>
+<span class="nc" id="L236">						size++;</span>
+<span class="nc bnc" id="L237" title="All 2 branches missed.">						if (size &gt;= 31)</span>
+<span class="nc" id="L238">							break;</span>
+<span class="nc" id="L239">						stockdatalist.add(dataWithSymbol);</span>
+					}
+<span class="nc" id="L241">					return stockDataWithSymbolRepository.saveAll(stockdatalist);</span>
+
+				} else {
+<span class="nc" id="L244">					int size = 0;</span>
+<span class="nc" id="L245">					StockDataWithSymbol stockValues = new StockDataWithSymbol();</span>
+<span class="nc bnc" id="L246" title="All 2 branches missed.">					for (Map.Entry&lt;String, StockData&gt; entry : stockPrice.getStockIntraDay().entrySet()) {</span>
+<span class="nc" id="L247">						++size;</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">						if (size &gt;= 31)</span>
+<span class="nc" id="L249">							break;</span>
+<span class="nc" id="L250">						String date = entry.getKey();</span>
+<span class="nc" id="L251">						stockData = entry.getValue();</span>
+
+<span class="nc" id="L253">						stockValues.setSymbol(symbol);</span>
+<span class="nc" id="L254">						stockValues.setHighPrice(decimalFormat.format(Double.valueOf(stockData.getHigh())));</span>
+<span class="nc" id="L255">						stockValues.setLowPrice(decimalFormat.format(Double.valueOf(stockData.getLow())));</span>
+<span class="nc" id="L256">						stockValues.setClosedPrice(decimalFormat.format(Double.valueOf(stockData.getClose())));</span>
+<span class="nc" id="L257">						stockValues.setDate(date);</span>
+<span class="nc" id="L258">						stockValues.setOpenPrice(decimalFormat.format(Double.valueOf(stockData.getOpen())));</span>
+<span class="nc" id="L259">						stockValues.setId(stockDataWithSymbolList.get(size - 1).getId());</span>
+<span class="nc" id="L260">						stockValues.setInformation(metaData.getInformation());</span>
+<span class="nc" id="L261">						stockValues.setUsers(users);</span>
+
+<span class="nc" id="L263">						stockDataWithSymbolRepository.save(stockValues);</span>
+					}
+<span class="nc" id="L265">					return stockDataWithSymbolRepository.findByInformationAndSymbol(information.get(0), symbol);</span>
+				}
+			}
+
+		}
+
+<span class="nc" id="L271">		return Collections.emptyList();</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

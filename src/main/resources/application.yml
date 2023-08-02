@@ -1,0 +1,66 @@
+spring:
+  datasource:
+    username: postgres
+    url: jdbc:postgresql://127.0.0.1:5432/StockTask
+    driverClassName: org.postgresql.Driver
+    password: '1234'
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: 'true'
+  devtools:
+    livereload:
+      enabled: true
+logging:
+  level:
+    '[com.backtrader]': info
+    root: off
+  file:
+      path: D:/springApp.log
+      name: appplication-logfiles.log
+      max-size: 10MB
+      total-size-cap: 10MB
+      max-history: 0
+  pattern: 
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" 
+server:
+  port: 9090
+app:
+  key: 77397A24432646294A404E635266546A576E5A7234753778214125442A472D4B
+  expiryTime: 3600000
+api:
+  value:
+    BIA9IP5OPNG7BAG6
+  
+# email properties  
+ 
+  spring:
+    mail:
+      host: smtp.gmail.com
+      port: 587
+      properties:
+          mail:
+            smtp:
+             auth: true
+             ssl:
+              enable: true
+             starttls:
+                  enable: true
+      username: hugaranilkumar37@gmail.com
+      password: nlkmbcjgwbugdfnh
+      protocol: smtp
+      default-encoding: UTF-8
+        
+
+        
+        
+        
+        
+   
+   
+    
+ 
