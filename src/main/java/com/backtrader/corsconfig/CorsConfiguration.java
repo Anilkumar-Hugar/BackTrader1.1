@@ -12,6 +12,10 @@ public class CorsConfiguration {
 	public WebMvcConfigurer configurer() {
 		return new WebMvcConfigurer() {
 
+			/*
+			 * SETTING UP THE CORS CONFIGURATION BY ALLOWING THE 3001 AND 3000 PORT SO THAT
+			 * BACKEND APPLICATION CAN RUN THE THE SAME PORT
+			 */
 			@Override
 			public void addCorsMappings(CorsRegistry registry) {
 				registry.addMapping("/**").allowedOriginPatterns("http://localhost:3001", "http://localhost:3000")

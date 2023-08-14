@@ -35,7 +35,8 @@ public class SellStock {
 	
     private double avgPrice;
 
-    @ManyToOne(fetch = FetchType.LAZY,targetEntity = Users.class) 
-    private	Users user;
+    @ManyToOne(fetch = FetchType.LAZY,targetEntity = User.class) 
+    private	User user;
+    
 	
 }

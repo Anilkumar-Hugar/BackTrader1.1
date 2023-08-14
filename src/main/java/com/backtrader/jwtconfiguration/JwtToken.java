@@ -8,7 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import com.backtrader.service.UserService;
-import com.backtrader.userentity.Users;
+import com.backtrader.userentity.User;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -23,16 +23,18 @@ public class JwtToken {
 
 	public String generateJwtToken(String email) {
 
+		// FINDING THE USER USING EMAIL WITH BUILT IN METHOD
 		UserDetails details = userService.loadUserByUsername(email);
-		Users users = userService.findByEmail(email);
-		return Jwts.builder().setSubject(details.getUsername()).setIssuedAt(new Date()).claim("phone", users.getPhone())
-				.claim("firstname", users.getFirstname())
-				.claim("lastname", users.getLastname())
-				.claim("roles", users.getRoles())
-				.signWith(SignatureAlgorithm.HS256, key.getBytes()).compact();
+		User user = userService.findByEmail(email);
+
+		// AFTER FINDING THE USER DETAILS SETTING THEM TO THE TOKEN
+		return Jwts.builder().setSubject(details.getUsername()).setIssuedAt(new Date()).claim("phone", user.getPhone())
+				.claim("firstname", user.getFirstname()).claim("lastname", user.getLastname())
+				.claim("roles", user.getRole()).signWith(SignatureAlgorithm.HS256, key.getBytes()).compact();
 	}
 
 	public String getUserNameFromToken(String token) {
+		// HERE WE CAN EXTRACT THE EMAIL FROM THE TOKEN
 		return Jwts.parser().setSigningKey(key.getBytes()).parseClaimsJws(token).getBody().getSubject();
 	}
 
@@ -42,6 +44,7 @@ public class JwtToken {
 	}
 
 	public boolean validateJwtToken(String authToken) {
+		// CHECKING IF THE TOKEN IS VALID OR NOT
 		return (getUserNameFromToken(authToken) != null);
 	}
 

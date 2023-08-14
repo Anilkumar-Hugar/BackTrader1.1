@@ -12,8 +12,9 @@ import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 
 @Configuration
-@SecurityScheme(name = "Authorization", scheme = "bearer", type = SecuritySchemeType.HTTP, in = SecuritySchemeIn.HEADER, 
-                  bearerFormat = "Bearer {token}")
+@SecurityScheme(name = "Authorization", scheme = "bearer", type = SecuritySchemeType.HTTP, in = SecuritySchemeIn.HEADER, bearerFormat = "Bearer {token}")
+
+//SETTING UP THE SWAGGER TO WORK WITH API
 public class SwaggerConfig {
 	@Bean
 	GroupedOpenApi openapi() {

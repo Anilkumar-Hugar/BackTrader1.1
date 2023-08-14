@@ -2,11 +2,7 @@ package com.backtrader.userentity;
 
 import java.util.Date;
 
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -15,22 +11,22 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
-@Entity
-@Getter
 @Setter
-@ToString
+@Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Stock {
+@Entity
+public class Margin {
 	@Id
 	@GeneratedValue(strategy = GenerationType.SEQUENCE)
 	private int id;
-	@JdbcTypeCode(SqlTypes.JSON)
-	private Object node;
+	private double openingBalance;
+	private double marginAvailable;
+	private double marginUsed;
 	private Date date;
-	@ManyToOne(fetch = FetchType.EAGER, targetEntity = User.class)
+	@ManyToOne
 	private User user;
-	private String symbol;
+	
+
 }

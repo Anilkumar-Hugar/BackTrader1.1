@@ -17,14 +17,14 @@ import jakarta.persistence.Id;
 @RequiredArgsConstructor
 @ToString
 @AllArgsConstructor
-public class Roles implements GrantedAuthority {
+public class Role implements GrantedAuthority {
 	@Id
 	@GeneratedValue(strategy = GenerationType.SEQUENCE)
 	private int id;
-	private String role;
+	private String roleName;
 
 	@Override
 	public String getAuthority() {
-		return role;
+		return roleName;
 	}
 }

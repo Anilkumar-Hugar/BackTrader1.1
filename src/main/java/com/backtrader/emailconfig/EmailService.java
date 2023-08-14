@@ -11,7 +11,8 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 @Configuration
 public class EmailService {
-	Logger logger=LoggerFactory.getLogger(EmailService.class);
+	private final Logger logger = LoggerFactory.getLogger(EmailService.class);
+
 	@Bean
 	public JavaMailSender javaMailSender() {
 		logger.info("mail sender bean started");
@@ -26,11 +27,13 @@ public class EmailService {
 			properties.put("mail.smtp.auth", "true");
 			properties.put("mail.smtp.starttls.enable", "true");
 			properties.put("mail.debug", "true");
-		}
-		catch(Exception e) {
-			logger.trace("Exception occured while creating Mail sender bean {}",e.getMessage());
+		} catch (Exception e) {
+			logger.error("Exception occurred while creating Mail sender bean", e);
 		}
 		return mailSender;
 	}
-
+	@Bean
+	public JavaMailSender mailSender() {
+		return new JavaMailSenderImpl();
+	}
 }

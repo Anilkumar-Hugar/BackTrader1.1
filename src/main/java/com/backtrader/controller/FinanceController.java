@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.backtrader.service.BuySellStockService;
-import com.backtrader.service.FinanceServiceDuplicate;
+import com.backtrader.service.FinanceService;
 import com.backtrader.userentity.StockDataWithSymbol;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -25,24 +25,31 @@ public class FinanceController {
 
 	Logger logger = LoggerFactory.getLogger(FinanceController.class);
 	@Autowired
-	private FinanceServiceDuplicate financeServiceDuplicate;
+	private FinanceService financeServiceDuplicate;
 	@Autowired
 	private BuySellStockService buySellStockService;
 
+	/*
+	 * THIS API WILL PROVIDE THE STOCK DATA BASED ON THE SYMBOL AND THE
+	 * FUNCTION(WEEKLY, DAILY, MONTHLY AND INTRADAY)
+	 */
 	@GetMapping(value = "/getstock")
 	@PreAuthorize("hasAuthority('USER')")
 	public ResponseEntity<List<StockDataWithSymbol>> get(@RequestHeader("Authorization") String token,
 			@RequestParam String symbol, @RequestParam String function) {
-		logger.info("Getting the stock data based on {} with symbol {}",function,symbol);
+		logger.info("Getting the stock data based on {} with symbol {}", function, symbol);
 		var stockPriceList = financeServiceDuplicate.getStockPrice(token, symbol, function);
 		return new ResponseEntity<>(stockPriceList, HttpStatus.OK);
 
 	}
 
-	@GetMapping("/getupdatedstock")
+	/*
+	 *  THIS API WILL RETURN THE DATA FOR THE UPDATED DATE TO PURCHASE OR SELL THE
+	 *  STOCK
+	 */	@GetMapping("/getupdatedstock")
 	@PreAuthorize("hasAuthority('USER')")
-	public ResponseEntity<?> getStockDataOnSystemPickedDate(@RequestHeader("Authorization") String token,
+	public ResponseEntity<String> getStockDataOnSystemPickedDate(@RequestHeader("Authorization") String token,
 			String symbol) {
-	return	ResponseEntity.ok(buySellStockService.getSystemUpdatedStock(token,symbol));
+		return ResponseEntity.ok(buySellStockService.getSystemUpdatedStock(token, symbol));
 	}
 }

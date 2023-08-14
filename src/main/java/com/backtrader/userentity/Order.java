@@ -2,6 +2,8 @@ package com.backtrader.userentity;
 
 import java.time.LocalTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -17,11 +19,11 @@ import lombok.NoArgsConstructor;
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name="orders")
+@Table(name = "orders")
 public class Order {
 	public Order(LocalTime currentTime, String type2, String symbol2, int quantity2, double avgPrice2, String string,
-			Users users) {
-		
+			User users) {
+
 	}
 
 	@Id
@@ -37,8 +39,8 @@ public class Order {
 	private int quantity;
 	private double avgPrice;
 	private String status;
-	
-	@ManyToOne(fetch = FetchType.LAZY, targetEntity = Users.class)
-	private Users user;
+	@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
+	@ManyToOne(fetch = FetchType.LAZY, targetEntity = User.class)
+	private User user;
 
 }

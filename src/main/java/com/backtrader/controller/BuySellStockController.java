@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.backtrader.service.BuySellStockService;
+import com.backtrader.userentity.Margin;
 import com.backtrader.userentity.Order;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -23,13 +24,15 @@ public class BuySellStockController {
 	@Autowired
 	private BuySellStockService buySellStockService;
 
+	// CODE FOR STOCK PURCHASE
 	@PostMapping("/buy")
 	@PreAuthorize("hasAuthority('USER')")
 	public ResponseEntity<String> buyStock(@RequestHeader("Authorization") String token, String symbol, double price,
 			int quantity) {
-		return ResponseEntity.ok(buySellStockService.buyStock(token, symbol, price, quantity));
+		return buySellStockService.buyStock(token, symbol, price, quantity);
 	}
 
+	// THIS API WILL RETURN THE ORDERS PAGE FOR A PARTICULAR USER
 	@GetMapping("/getorders")
 	@PreAuthorize("hasAuthority('USER')")
 	public ResponseEntity<List<Order>> getAllOrders(@RequestHeader("Authorization") String token) {
@@ -37,11 +40,20 @@ public class BuySellStockController {
 		return new ResponseEntity<>(orders, HttpStatus.OK);
 	}
 
+	// API FOR SELLING THE STOCK
 	@PostMapping("/sellstocks")
 	@PreAuthorize("hasAuthority('USER')")
 	public ResponseEntity<String> sellStock(@RequestHeader("Authorization") String token, @RequestParam String symbol,
 			@RequestParam int quantity) {
-		return ResponseEntity.status(HttpStatus.OK).body(buySellStockService.sellStock(token, symbol, quantity));
+		return buySellStockService.sellStock(token, symbol, quantity);
+	}
+
+	// API FOR THE DASHBOARD TO CHECK THE MARGIN
+	@PostMapping("/dashboard")
+	@PreAuthorize("hasAuthority('USER')")
+	public ResponseEntity<Margin> showDashboard(@RequestHeader("Authorization") String token) {
+		Margin margin = buySellStockService.calculateDashboard(token);
+		return ResponseEntity.status(HttpStatus.OK).body(margin);
 	}
 
 }

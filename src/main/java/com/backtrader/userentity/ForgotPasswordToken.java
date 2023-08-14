@@ -20,6 +20,6 @@ public class ForgotPasswordToken {
 	private int id;
 	private String token;
 	private long tokenCreatedTime;
-	@ManyToOne(targetEntity = Users.class)
-	private Users users;
+	@ManyToOne(targetEntity = User.class)
+	private User user;
 }

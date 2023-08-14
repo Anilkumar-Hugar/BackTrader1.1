@@ -6,10 +6,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.backtrader.userentity.Order;
-import com.backtrader.userentity.Users;
+import com.backtrader.userentity.User;
 
 @Repository
 public interface OrdersRepository extends JpaRepository<Order, Integer> {
-	List<Order> findAllByUser(Users user);
+	List<Order> findAllByUser(User user);
+	List<Order>findBySymbol(String symbol);
 
 }
